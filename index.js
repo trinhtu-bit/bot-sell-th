@@ -18,13 +18,14 @@ const TOKEN = process.env.DISCORD_TOKEN;
 const CLIENT_ID = process.env.CLIENT_ID;
 const GUILD_ID = process.env.GUILD_ID || null;
 const ADMIN_CHANNEL_ID = process.env.ADMIN_CHANNEL_ID || null;
+const ADMIN_ROLE_ID = process.env.ADMIN_ROLE_ID || null;   // 👈 thêm role admin
+const SUPPORT_ROLE_ID = process.env.SUPPORT_ROLE_ID || null; // 👈 thêm role seller/support
 
 if (!TOKEN || !CLIENT_ID) {
   console.error('Vui lòng cấu hình DISCORD_TOKEN và CLIENT_ID trong .env');
   process.exit(1);
 }
 
-// Ensure data file exists
 const DATA_FILE = './data.json';
 if (!fs.existsSync(DATA_FILE)) fs.writeJsonSync(DATA_FILE, { orders: [] }, { spaces: 2 });
 
@@ -70,7 +71,6 @@ client.once(Events.ClientReady, () => {
 
 client.on(Events.InteractionCreate, async (interaction) => {
   try {
-    // Slash command xử lý
     if (interaction.isChatInputCommand()) {
       // /postprice
       if (interaction.commandName === 'postprice') {
@@ -81,7 +81,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
           return;
         }
 
-        // Embed bảng giá
         const embed = new EmbedBuilder()
           .setTitle('🔥 Bảng Giá Key Free Fire')
           .setDescription(
@@ -118,9 +117,8 @@ client.on(Events.InteractionCreate, async (interaction) => {
           return;
         }
 
-        // Check nếu là admin hoặc chủ đơn hàng
         const isAdmin = interaction.member.permissions.has(PermissionsBitField.Flags.Administrator);
-        const ticketOwnerId = interaction.channel.topic || null; // mình sẽ lưu ownerId trong topic
+        const ticketOwnerId = interaction.channel.topic || null;
 
         if (!isAdmin && interaction.user.id !== ticketOwnerId) {
           await interaction.reply({ content: '❌ Bạn không có quyền add người vào đơn hàng này.', ephemeral: true });
@@ -178,21 +176,36 @@ client.on(Events.InteractionCreate, async (interaction) => {
       db.orders.push(order);
       fs.writeJsonSync(DATA_FILE, db, { spaces: 2 });
 
-      // Tạo channel đơn hàng
       const guild = interaction.guild;
       const category = guild.channels.cache.find(c => c.name === "MUA-HANG" && c.type === 4);
+
+      const overwrites = [
+        { id: guild.roles.everyone, deny: ['ViewChannel'] },
+        { id: interaction.user.id, allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory'] },
+      ];
+
+      // Add quyền cho Admin role
+      if (ADMIN_ROLE_ID) {
+        overwrites.push({
+          id: ADMIN_ROLE_ID,
+          allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory']
+        });
+      }
+
+      // Add quyền cho Support role
+      if (SUPPORT_ROLE_ID) {
+        overwrites.push({
+          id: SUPPORT_ROLE_ID,
+          allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory']
+        });
+      }
 
       const ticketChannel = await guild.channels.create({
         name: `donhang-${interaction.user.username}`,
         type: 0,
         parent: category ? category.id : null,
-        topic: interaction.user.id, // lưu userId chủ đơn hàng
-        permissionOverwrites: [
-          { id: guild.roles.everyone, deny: ['ViewChannel'] },
-          { id: interaction.user.id, allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory'] },
-          { id: guild.roles.cache.find(r => r.permissions.has(PermissionsBitField.Flags.Administrator)).id,
-            allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory'] }
-        ]
+        topic: interaction.user.id,
+        permissionOverwrites: overwrites
       });
 
       const embedOrder = new EmbedBuilder()
@@ -212,11 +225,15 @@ client.on(Events.InteractionCreate, async (interaction) => {
       const closeBtn = new ButtonBuilder().setCustomId('close_donhang').setLabel('🔒 Đóng Đơn Hàng').setStyle(ButtonStyle.Danger);
       const row = new ActionRowBuilder().addComponents(closeBtn);
 
-      await ticketChannel.send({ content: `<@${interaction.user.id}>`, embeds: [embedOrder], components: [row] });
+      await ticketChannel.send({ 
+        content: `<@${interaction.user.id}> ${ADMIN_ROLE_ID ? `<@&${ADMIN_ROLE_ID}>` : ''} ${SUPPORT_ROLE_ID ? `<@&${SUPPORT_ROLE_ID}>` : ''}`, 
+        embeds: [embedOrder], 
+        components: [row] 
+      });
 
       await interaction.reply({ content: `✅ Đã tạo kênh riêng: ${ticketChannel}`, ephemeral: true });
 
-      // Báo admin
+      // Báo admin qua kênh riêng nếu có
       if (ADMIN_CHANNEL_ID) {
         const adminCh = await client.channels.fetch(ADMIN_CHANNEL_ID).catch(()=>null);
         if (adminCh && adminCh.isTextBased()) {
