@@ -88,9 +88,9 @@ client.on(Events.InteractionCreate, async (interaction) => {
             'Giá key tham khảo cho Free Fire\n\n' +
             '💳 Thanh toán qua **Momo / MB Bank / TP Bank**\n\n' +
             '**Gói 1 Ngày** — 20.000 VND\n' +
-            '**Gói 7 Ngày** — 50.000 VND\n' +
+            '**Gói 7 Ngày** — 80.000 VND\n' +
             '**Gói 30 Ngày** — 150.000 VND\n' +
-            '**Vĩnh Viễn** — 250.000 VND\n\n' +
+            '**Vĩnh Viễn** — 500.000 VND\n\n' +
             '📝 *Giá có thể thay đổi tùy đợt khuyến mãi.*\n' +
             '📩 Liên hệ admin để được hỗ trợ nhanh nhất.'
           )
@@ -158,7 +158,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       if (id === 'buy_1') { packageName = 'Gói 1 Ngày'; price = 20000; }
       else if (id === 'buy_7') { packageName = 'Gói 7 Ngày'; price = 50000; }
       else if (id === 'buy_30') { packageName = 'Gói 30 Ngày'; price = 150000; }
-      else if (id === 'buy_life') { packageName = 'Vĩnh Viễn'; price = 250000; }
+      else if (id === 'buy_life') { packageName = 'Vĩnh Viễn'; price = 500000; }
       else {
         await interaction.reply({ content: 'Nút không hợp lệ.', ephemeral: true });
         return;
