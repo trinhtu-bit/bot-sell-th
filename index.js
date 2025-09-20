@@ -1,6 +1,6 @@
 require('dotenv').config();
 const fs = require('fs-extra');
-const express = require('express'); // 👈 thêm Express
+const express = require('express');
 const { 
   Client, 
   GatewayIntentBits, 
@@ -12,7 +12,8 @@ const {
   ButtonBuilder, 
   ButtonStyle, 
   Events, 
-  PermissionsBitField 
+  PermissionsBitField,
+  ActivityType
 } = require('discord.js');
 
 const TOKEN = process.env.DISCORD_TOKEN;
@@ -33,6 +34,15 @@ if (!fs.existsSync(DATA_FILE)) fs.writeJsonSync(DATA_FILE, { orders: [] }, { spa
 const client = new Client({
   intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent]
 });
+
+// Danh sách activity ngẫu nhiên
+const activities = [
+  { name: "GTA VI", type: ActivityType.Playing },
+  { name: "Spotify", type: ActivityType.Listening },
+  { name: "Youtube", type: ActivityType.Watching },
+  { name: "Code Discord Bot", type: ActivityType.Competing },
+  { name: "Minecraft", type: ActivityType.Playing },
+];
 
 // Slash commands
 const postPriceCommand = new SlashCommandBuilder()
@@ -68,6 +78,12 @@ async function registerCommands() {
 
 client.once(Events.ClientReady, () => {
   console.log(`Bot sẵn sàng: ${client.user.tag}`);
+
+  // 👉 Cập nhật activity ngẫu nhiên mỗi 15 giây
+  setInterval(() => {
+    const random = activities[Math.floor(Math.random() * activities.length)];
+    client.user.setActivity(random);
+  }, 15000);
 });
 
 client.on(Events.InteractionCreate, async (interaction) => {
