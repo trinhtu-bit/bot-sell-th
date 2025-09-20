@@ -1,5 +1,6 @@
 require('dotenv').config();
 const fs = require('fs-extra');
+const express = require('express'); // 👈 thêm Express
 const { 
   Client, 
   GatewayIntentBits, 
@@ -18,8 +19,8 @@ const TOKEN = process.env.DISCORD_TOKEN;
 const CLIENT_ID = process.env.CLIENT_ID;
 const GUILD_ID = process.env.GUILD_ID || null;
 const ADMIN_CHANNEL_ID = process.env.ADMIN_CHANNEL_ID || null;
-const ADMIN_ROLE_ID = process.env.ADMIN_ROLE_ID || null;   // 👈 thêm role admin
-const SUPPORT_ROLE_ID = process.env.SUPPORT_ROLE_ID || null; // 👈 thêm role seller/support
+const ADMIN_ROLE_ID = process.env.ADMIN_ROLE_ID || null;
+const SUPPORT_ROLE_ID = process.env.SUPPORT_ROLE_ID || null;
 
 if (!TOKEN || !CLIENT_ID) {
   console.error('Vui lòng cấu hình DISCORD_TOKEN và CLIENT_ID trong .env');
@@ -184,7 +185,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
         { id: interaction.user.id, allow: ['ViewChannel', 'SendMessages', 'ReadMessageHistory'] },
       ];
 
-      // Add quyền cho Admin role
       if (ADMIN_ROLE_ID) {
         overwrites.push({
           id: ADMIN_ROLE_ID,
@@ -192,7 +192,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
         });
       }
 
-      // Add quyền cho Support role
       if (SUPPORT_ROLE_ID) {
         overwrites.push({
           id: SUPPORT_ROLE_ID,
@@ -233,7 +232,6 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
       await interaction.reply({ content: `✅ Đã tạo kênh riêng: ${ticketChannel}`, ephemeral: true });
 
-      // Báo admin qua kênh riêng nếu có
       if (ADMIN_CHANNEL_ID) {
         const adminCh = await client.channels.fetch(ADMIN_CHANNEL_ID).catch(()=>null);
         if (adminCh && adminCh.isTextBased()) {
@@ -259,8 +257,14 @@ client.on(Events.InteractionCreate, async (interaction) => {
   }
 });
 
-// Start
+// Start bot
 (async () => {
   await registerCommands();
   client.login(TOKEN);
 })();
+
+// 👇 Fake server để Render Free không kill app
+const app = express();
+const PORT = process.env.PORT || 3000;
+app.get("/", (req, res) => res.send("Bot is running!"));
+app.listen(PORT, () => console.log(`Web server listening on port ${PORT}`));
